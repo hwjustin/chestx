@@ -14,13 +14,19 @@ from tqdm import tqdm
 from PIL import Image
 from peft import LoraConfig, PeftModel, get_peft_model  # Import LoRA modules
 
-# Define the categories for multi-label classification
+# Define the categories and their corresponding character tokens
 CATEGORIES = [
     "Atelectasis", "Cardiomegaly", "Consolidation", "Edema", 
     "Enlarged-Cardiomediastinum", "Fracture", "Lung-Lesion", 
     "Lung-Opacity", "No-Finding", "Pleural-Effusion", 
     "Pleural_Other", "Pneumonia", "Pneumothorax", "Support-Devices"
 ]
+
+CHARACTER_MAPPING = {category: chr(97 + i) for i, category in enumerate(CATEGORIES)}  # Maps to 'a', 'b', 'c', ...
+
+def get_character_token_ids(tokenizer):
+    # Map each character to a token ID
+    return {char: tokenizer.convert_tokens_to_ids(tokenizer.tokenize(char)[0]) for char in CHARACTER_MAPPING.values()}
 
 class ChestXDataset(Dataset):
     def __init__(self, csv_file, image_folder, report_file, tokenizer, processor, max_length=512):
@@ -65,18 +71,20 @@ class ChestXDataset(Dataset):
         # Process the image
         image = self.processor(image, return_tensors="pt").pixel_values.squeeze(0)
         
-
         report = entry['report']
+        # Update the prompt to use character mapping
+        category_mapping_str = ", ".join([f"{char}: {category}" for category, char in CHARACTER_MAPPING.items()])
         prompt = (
             f"You are a doctor helping to predict the medical condition of a patient. "
             f"You are now given the chest x-ray image and the following report: {report}. "
-            f"Please determine if the user has certain medical conditions in the {CATEGORIES}. "
-            f"Answer only condition names from the list and separate by commas."
+            f"Please determine if the user has certain medical conditions. Use the following mapping: {category_mapping_str}. "
+            f"Answer only with the corresponding character."
         )
         text_encoding = self.tokenizer(
             prompt, max_length=self.max_length, padding="max_length", truncation=True, return_tensors="pt"
         )
 
+        # Convert ground truth to character labels
         label = torch.tensor([entry['ground_truth'][category] for category in CATEGORIES], dtype=torch.float)
 
         return {
@@ -99,7 +107,12 @@ def set_seed(seed):
 
 def get_category_token_ids(tokenizer):
     # Map each category to a token ID
-    return {category: tokenizer.convert_tokens_to_ids(tokenizer.tokenize(category)[0]) for category in CATEGORIES}
+    category_token_ids = {}
+    for category in CATEGORIES:
+        tokens = tokenizer.tokenize(category)
+        print(f"Category: {category}, Tokens: {tokens}")
+        category_token_ids[category] = tokenizer.convert_tokens_to_ids(tokens[0])
+    return category_token_ids
 
 def evaluate(tokenizer, model, dataloader, device):
     model.eval()
@@ -107,7 +120,7 @@ def evaluate(tokenizer, model, dataloader, device):
     total = 0
     all_labels = []
     all_predictions = []
-    category_token_ids = get_category_token_ids(tokenizer)
+    character_token_ids = get_character_token_ids(tokenizer)
 
     for batch in tqdm(dataloader, desc="Evaluating", leave=False):
         input_ids = batch["input_ids"].to(device)
@@ -118,11 +131,11 @@ def evaluate(tokenizer, model, dataloader, device):
         with torch.no_grad():
             outputs = model(input_ids=input_ids, attention_mask=attention_mask, pixel_values=images)
             logits = outputs.logits[:, -1, :]
-            category_logits = torch.stack(
-                [logits[:, token_id] for token_id in category_token_ids.values()],
+            character_logits = torch.stack(
+                [logits[:, token_id] for token_id in character_token_ids.values()],
                 dim=-1,
             )
-            predictions = torch.argmax(category_logits, dim=-1)
+            predictions = torch.argmax(character_logits, dim=-1)
             total_correct += (predictions == labels).sum().item()
             total += labels.size(0)
             all_labels.extend(labels.cpu().tolist())
@@ -138,7 +151,7 @@ def train(model, train_dataloader, val_dataloader, tokenizer, device, args):
     optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr)
     criterion = nn.CrossEntropyLoss()
 
-    category_token_ids = get_category_token_ids(tokenizer)
+    character_token_ids = get_character_token_ids(tokenizer)
 
     best_f1 = -1
     model.train()
@@ -155,13 +168,11 @@ def train(model, train_dataloader, val_dataloader, tokenizer, device, args):
             optimizer.zero_grad()
             outputs = model(input_ids=input_ids, attention_mask=attention_mask, pixel_values=images)
             logits = outputs.logits[:, -1, :]
-            category_logits = torch.stack(
-                [logits[:, token_id] for token_id in category_token_ids.values()],
+            character_logits = torch.stack(
+                [logits[:, token_id] for token_id in character_token_ids.values()],
                 dim=-1,
             )
-            # print(category_logits)
-            # print(labels)
-            loss = criterion(category_logits, labels)
+            loss = criterion(character_logits, labels)
             loss.backward()
             optimizer.step()
 
