@@ -193,15 +193,23 @@ def train(model, train_dataloader, val_dataloader, tokenizer, device, args):
 
             total_loss += loss.item()
 
-            if (step + 1) % args.eval_steps == 0:
-                metrics = evaluate(tokenizer, model, val_dataloader, device)
-                print(
-                    f"Epoch {epoch + 1} Step {step + 1} - Val Accuracy: {metrics['accuracy']:.4f}, F1: {metrics['f1']:.4f}, Precision: {metrics['precision']:.4f}, Recall: {metrics['recall']:.4f}"
-                )
+        # Evaluate at the end of each epoch
+        metrics = evaluate(tokenizer, model, val_dataloader, device)
+        print(f"Epoch {epoch + 1}")
+        print(f"Validation Accuracy: {metrics['accuracy']:.4f}")
+        print(f"Validation F1 Score: {metrics['f1']:.4f}")
+        print(f"Validation Precision: {metrics['precision']:.4f}")
+        print(f"Validation Recall: {metrics['recall']:.4f}")
 
-                if metrics["f1"] > best_f1:
-                    best_f1 = metrics["f1"]
-                    model.save_pretrained(args.save_path)
+        if metrics["f1"] > best_f1:
+            best_f1 = metrics["f1"]
+            print("Model achieves better F1 score!")
+
+        # Save the model at the end of each epoch
+        epoch_save_path = os.path.join(args.save_path, f"epoch_{epoch+1}")  # Ensure epoch starts from 1
+        os.makedirs(epoch_save_path, exist_ok=True)  # Create directory if it doesn't exist
+        model.save_pretrained(epoch_save_path)
+        print(f"Model saved at {epoch_save_path}")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Train a BLIP-2 model on the chestx dataset")
