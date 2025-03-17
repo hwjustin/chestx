@@ -136,6 +136,7 @@ def evaluate(tokenizer, model, dataloader, device):
                 dim=-1,
             )
             predictions = torch.argmax(character_logits, dim=-1)
+            labels = labels.argmax(dim=-1)  # Convert one-hot to class indices
             total_correct += (predictions == labels).sum().item()
             total += labels.size(0)
             all_labels.extend(labels.cpu().tolist())
@@ -172,6 +173,7 @@ def train(model, train_dataloader, val_dataloader, tokenizer, device, args):
                 [logits[:, token_id] for token_id in character_token_ids.values()],
                 dim=-1,
             )
+            labels = labels.argmax(dim=-1)  # Convert one-hot to class indices
             loss = criterion(character_logits, labels)
             loss.backward()
             optimizer.step()
