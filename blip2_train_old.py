@@ -6,13 +6,11 @@ import csv
 import numpy as np
 import torch
 import torch.nn as nn
-import torchvision.transforms as transforms
 from torch.utils.data import DataLoader, Dataset
-from transformers import AutoProcessor, AutoTokenizer, Blip2ForConditionalGeneration, Blip2Processor
+from transformers import AutoProcessor, AutoTokenizer, Blip2ForConditionalGeneration
 from sklearn.metrics import f1_score, precision_score, recall_score
 from tqdm import tqdm
 from PIL import Image
-from peft import LoraConfig, PeftModel, get_peft_model  # Import LoRA modules
 
 # Define the categories for multi-label classification
 CATEGORIES = [
@@ -58,13 +56,8 @@ class ChestXDataset(Dataset):
         image_id = list(self.data.keys())[idx]
         entry = self.data[image_id]
         image_path = os.path.join(self.image_folder, image_id)
-        
-        # Load the original image
         image = Image.open(image_path)
-
-        # Process the image
         image = self.processor(image, return_tensors="pt").pixel_values.squeeze(0)
-        
 
         report = entry['report']
         prompt = (
@@ -97,17 +90,10 @@ def set_seed(seed):
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
 
-def get_category_token_ids(tokenizer):
-    # Map each category to a token ID
-    return {category: tokenizer.convert_tokens_to_ids(tokenizer.tokenize(category)[0]) for category in CATEGORIES}
-
 def evaluate(tokenizer, model, dataloader, device):
     model.eval()
-    total_correct = 0
-    total = 0
     all_labels = []
     all_predictions = []
-    category_token_ids = get_category_token_ids(tokenizer)
 
     for batch in tqdm(dataloader, desc="Evaluating", leave=False):
         input_ids = batch["input_ids"].to(device)
@@ -116,29 +102,24 @@ def evaluate(tokenizer, model, dataloader, device):
         labels = batch["label"].to(device)
 
         with torch.no_grad():
-            outputs = model(input_ids=input_ids, attention_mask=attention_mask, pixel_values=images)
-            logits = outputs.logits[:, -1, :]
-            category_logits = torch.stack(
-                [logits[:, token_id] for token_id in category_token_ids.values()],
-                dim=-1,
+            outputs = model(
+                input_ids=input_ids, attention_mask=attention_mask, pixel_values=images
             )
-            predictions = torch.argmax(category_logits, dim=-1)
-            total_correct += (predictions == labels).sum().item()
-            total += labels.size(0)
+            logits = outputs.logits
+            predictions = torch.sigmoid(logits) > 0.5
+
             all_labels.extend(labels.cpu().tolist())
             all_predictions.extend(predictions.cpu().tolist())
 
-    accuracy = total_correct / total
     f1 = f1_score(all_labels, all_predictions, average='macro')
     precision = precision_score(all_labels, all_predictions, average='macro')
     recall = recall_score(all_labels, all_predictions, average='macro')
-    return accuracy, f1, precision, recall
+
+    return f1, precision, recall
 
 def train(model, train_dataloader, val_dataloader, tokenizer, device, args):
     optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr)
-    criterion = nn.CrossEntropyLoss()
-
-    category_token_ids = get_category_token_ids(tokenizer)
+    criterion = nn.BCEWithLogitsLoss()
 
     best_f1 = -1
     model.train()
@@ -153,30 +134,21 @@ def train(model, train_dataloader, val_dataloader, tokenizer, device, args):
             labels = batch["label"].to(device)
 
             optimizer.zero_grad()
-            outputs = model(input_ids=input_ids, attention_mask=attention_mask, pixel_values=images)
-            logits = outputs.logits[:, -1, :]
-            category_logits = torch.stack(
-                [logits[:, token_id] for token_id in category_token_ids.values()],
-                dim=-1,
+            outputs = model(
+                input_ids=input_ids, attention_mask=attention_mask, pixel_values=images
             )
-            # print(category_logits)
-            # print(labels)
-            loss = criterion(category_logits, labels)
+            logits = outputs.logits
+            loss = criterion(logits, labels)
             loss.backward()
             optimizer.step()
 
             total_loss += loss.item()
 
-        acc, f1, precision, recall = evaluate(tokenizer, model, val_dataloader, device)
-        print(f"Epoch {epoch + 1}")
-        print(f"Validation Accuracy: {acc:.4f}")
-        print(f"Validation F1 Score: {f1:.4f}")
-        print(f"Validation Precision: {precision:.4f}")
-        print(f"Validation Recall: {recall:.4f}")
+        f1, precision, recall = evaluate(tokenizer, model, val_dataloader, device)
+        print(f"Epoch {epoch + 1} - Loss: {total_loss:.4f}, F1: {f1:.4f}, Precision: {precision:.4f}, Recall: {recall:.4f}")
 
         if f1 > best_f1:
             best_f1 = f1
-            print("SAVING MODEL")
             model.save_pretrained(args.save_path)
 
 if __name__ == "__main__":
@@ -190,9 +162,6 @@ if __name__ == "__main__":
     parser.add_argument("--lr", type=float, default=5e-5, help="Learning rate")
     parser.add_argument("--seed", type=int, default=1234, help="Random seed for initialization")
     parser.add_argument("--max_length", type=int, default=512, help="Maximum length for tokenized sequences")
-    parser.add_argument("--lora_r", type=int, default=8, help="LoRA rank")
-    parser.add_argument("--lora_alpha", type=float, default=16, help="LoRA alpha")
-    parser.add_argument("--lora_dropout", type=float, default=0.1, help="LoRA dropout")
 
     args = parser.parse_args()
 
@@ -203,17 +172,6 @@ if __name__ == "__main__":
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
     model = Blip2ForConditionalGeneration.from_pretrained("Salesforce/blip2-opt-2.7b")
-
-    # Apply LoRA to the model
-    config = LoraConfig(
-        r=args.lora_r,
-        lora_alpha=args.lora_alpha,
-        lora_dropout=args.lora_dropout,
-        bias="none",
-        target_modules=["q_proj", "k_proj"],
-    )
-    model = get_peft_model(model, config)
-
     model.to(device)
 
     train_dataset = ChestXDataset(args.train_csv, args.image_folder, args.report_csv, tokenizer, processor, args.max_length)
