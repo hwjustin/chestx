@@ -42,7 +42,7 @@ class ChestXDataset(Dataset):
         with open(csv_file, mode='r') as file:
             reader = csv.DictReader(file)
             for row in reader:
-                image_ids.append(row['image_id'])
+                image_ids.append(row['id'])
 
         # Load reports and ground truth from proc/train.csv
         data = {}

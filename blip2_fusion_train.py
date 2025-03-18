@@ -43,13 +43,15 @@ class ChestXDataset(Dataset):
         with open(csv_file, mode='r') as file:
             reader = csv.DictReader(file)
             for row in reader:
-                image_id = row['image_id']
+                image_id = row['id']
                 category = row['category']
-                # Map categories to R, U, S
-                if category in ["R"]:
+                # Map categories to R, T, I, S
+                if category == "R":
                     label = "R"
-                elif category in ["U_text", "U_image"]:
-                    label = "U"
+                elif category == "U_text":
+                    label = "T"
+                elif category == "U_image":
+                    label = "I"
                 else:
                     label = "S"
                 data[image_id] = {'label': label}
@@ -89,7 +91,7 @@ class ChestXDataset(Dataset):
         )
 
         # Convert label to index
-        label_map = {"R": 0, "U": 1, "S": 2}
+        label_map = {"R": 0, "T": 1, "I": 2, "S": 3}
         label = torch.tensor(label_map[entry['label']], dtype=torch.long)
 
         return {
@@ -123,7 +125,7 @@ def evaluate(tokenizer, model, dataloader, device):
     model.eval()
     total_correct, total = 0, 0
     all_labels, all_predictions = [], []
-    token_ids = {token: tokenizer.convert_tokens_to_ids(tokenizer.tokenize(token))[0] for token in ["R", "U", "S"]}
+    token_ids = {token: tokenizer.convert_tokens_to_ids(tokenizer.tokenize(token))[0] for token in ["R", "T", "I", "S"]}
 
     for batch in tqdm(dataloader, desc="Evaluating", leave=False):
         input_ids, attention_mask, images, labels = (
@@ -133,8 +135,8 @@ def evaluate(tokenizer, model, dataloader, device):
 
         with torch.no_grad():
             logits = model(input_ids=input_ids, attention_mask=attention_mask, pixel_values=images).logits[:, -1, :]
-            rus_logits_batch = torch.stack([logits[:, token_ids[token]] for token in ["R", "U", "S"]], dim=-1)
-            predictions = torch.argmax(rus_logits_batch, dim=-1)
+            rti_logits_batch = torch.stack([logits[:, token_ids[token]] for token in ["R", "T", "I", "S"]], dim=-1)
+            predictions = torch.argmax(rti_logits_batch, dim=-1)
 
             total_correct += (predictions == labels).sum().item()
             total += labels.size(0)
@@ -172,7 +174,7 @@ class FocalLoss(nn.Module):
 def train(model, train_dataloader, val_dataloader, tokenizer, device, args):
     optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr)
     criterion = FocalLoss(alpha=1, gamma=2)
-    token_ids = {token: tokenizer.convert_tokens_to_ids(tokenizer.tokenize(token))[0] for token in ["R", "U", "S"]}
+    token_ids = {token: tokenizer.convert_tokens_to_ids(tokenizer.tokenize(token))[0] for token in ["R", "T", "I", "S"]}
     best_f1 = -1
 
     for epoch in range(args.epochs):
@@ -186,8 +188,8 @@ def train(model, train_dataloader, val_dataloader, tokenizer, device, args):
 
             optimizer.zero_grad()
             logits = model(input_ids=input_ids, attention_mask=attention_mask, pixel_values=images).logits[:, -1, :]
-            rus_logits_batch = torch.stack([logits[:, token_ids[token]] for token in ["R", "U", "S"]], dim=-1)
-            loss = criterion(rus_logits_batch, labels)
+            rti_logits_batch = torch.stack([logits[:, token_ids[token]] for token in ["R", "T", "I", "S"]], dim=-1)
+            loss = criterion(rti_logits_batch, labels)
             loss.backward()
             optimizer.step()
 
