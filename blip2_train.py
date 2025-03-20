@@ -116,8 +116,6 @@ def get_category_token_ids(tokenizer):
 
 def evaluate(tokenizer, model, dataloader, device):
     model.eval()
-    total_correct = 0
-    total = 0
     all_labels = []
     all_predictions = []
     character_token_ids = get_character_token_ids(tokenizer)
@@ -135,22 +133,24 @@ def evaluate(tokenizer, model, dataloader, device):
                 [logits[:, token_id] for token_id in character_token_ids.values()],
                 dim=-1,
             )
-            predictions = torch.argmax(character_logits, dim=-1)
-            labels = labels.argmax(dim=-1)  # Convert one-hot to class indices
-            total_correct += (predictions == labels).sum().item()
-            total += labels.size(0)
-            all_labels.extend(labels.cpu().tolist())
-            all_predictions.extend(predictions.cpu().tolist())
+            probs = torch.sigmoid(character_logits)
+            predictions = (probs > 0.5).float()
+            
+            all_labels.extend(labels.cpu().numpy())
+            all_predictions.extend(predictions.cpu().numpy())
 
-    accuracy = total_correct / total
-    f1 = f1_score(all_labels, all_predictions, average='macro')
-    precision = precision_score(all_labels, all_predictions, average='macro')
-    recall = recall_score(all_labels, all_predictions, average='macro')
-    return accuracy, f1, precision, recall
+    all_labels = torch.tensor(all_labels)
+    all_predictions = torch.tensor(all_predictions)
+
+    # Compute multi-label classification metrics
+    f1 = f1_score(all_labels, all_predictions, average="macro")
+    precision = precision_score(all_labels, all_predictions, average="macro")
+    recall = recall_score(all_labels, all_predictions, average="macro")
+    return f1, precision, recall
 
 def train(model, train_dataloader, val_dataloader, tokenizer, device, args):
     optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr)
-    criterion = nn.CrossEntropyLoss()
+    criterion = nn.BCEWithLogitsLoss()
 
     character_token_ids = get_character_token_ids(tokenizer)
 
@@ -173,27 +173,23 @@ def train(model, train_dataloader, val_dataloader, tokenizer, device, args):
                 [logits[:, token_id] for token_id in character_token_ids.values()],
                 dim=-1,
             )
-            labels = labels.argmax(dim=-1)  # Convert one-hot to class indices
+            # labels = labels.argmax(dim=-1)  # Convert one-hot to class indices
             loss = criterion(character_logits, labels)
             loss.backward()
             optimizer.step()
 
             total_loss += loss.item()
 
-        acc, f1, precision, recall = evaluate(tokenizer, model, val_dataloader, device)
+        f1, precision, recall = evaluate(tokenizer, model, val_dataloader, device)
         print(f"Epoch {epoch + 1}")
-        print(f"Validation Accuracy: {acc:.4f}")
         print(f"Validation F1 Score: {f1:.4f}")
         print(f"Validation Precision: {precision:.4f}")
         print(f"Validation Recall: {recall:.4f}")
 
         if f1 > best_f1:
             best_f1 = f1
-            print("Model achieves better F1 score!")
-        epoch_save_path = os.path.join(args.save_path, f"epoch_{epoch+1}")  # Ensure epoch starts from 1
-        os.makedirs(epoch_save_path, exist_ok=True)  # Create directory if it doesn't exist
-        model.save_pretrained(epoch_save_path)
-        print(f"Model saved at {epoch_save_path}")
+            print("SAVING MODEL")
+            model.save_pretrained(args.save_path)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Train a BLIP-2 model on the chestx dataset")
