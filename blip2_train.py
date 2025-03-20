@@ -188,8 +188,13 @@ def train(model, train_dataloader, val_dataloader, tokenizer, device, args):
 
         if f1 > best_f1:
             best_f1 = f1
-            print("SAVING MODEL")
-            model.save_pretrained(args.save_path)
+            print("Model achieves better F1 score!")
+
+        # Save the model at the end of each epoch
+        epoch_save_path = os.path.join(args.save_path, f"epoch_{epoch+1}")  # Ensure epoch starts from 1
+        os.makedirs(epoch_save_path, exist_ok=True)  # Create directory if it doesn't exist
+        model.save_pretrained(epoch_save_path)
+        print(f"Model saved at {epoch_save_path}")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Train a BLIP-2 model on the chestx dataset")
