@@ -32,9 +32,9 @@ DEVICE = "cuda"
 BATCH_SIZE = 1  # Process one image at a time for simplicity
 
 # File paths
-CSV_FILE = "proc/train.csv"
-OUTPUT_CSV = "results.csv"
-IMAGE_FOLDER = "proc/images/"
+CSV_FILE = "data/chestx/proc/train.csv"
+OUTPUT_CSV = "results_image_train.csv"
+IMAGE_FOLDER = "data/chestx/proc/images/"
 
 def load_image_paths(csv_file, limit=None):
     """Load image paths from a CSV file, with an optional limit."""
