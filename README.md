@@ -51,6 +51,20 @@ bash blip2_chestx_fusion_train.sh
 
 
 ## 4. Inference with Mixture of Expert Models
+**Generate Inference Results**
 
+```bash
+# Inference with Expert Models
+bash blip2_chestx_expert_inference.sh
+
+# Inference with Fusion Models
+bash blip2_chestx_fusion_inference.sh
+```
+
+**Evaluate Fusion Strategies**
+
+```bash
+python evaluation/evaluate_fusion.py
+```
 
 ## Acknowledgements
