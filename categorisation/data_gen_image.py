@@ -33,7 +33,7 @@ BATCH_SIZE = 1  # Process one image at a time for simplicity
 
 # File paths
 CSV_FILE = "data/chestx/proc/train.csv"
-OUTPUT_CSV = "results_image_train.csv"
+OUTPUT_CSV = "data/chestx/split/unimodal_image_train.csv"
 IMAGE_FOLDER = "data/chestx/proc/images/"
 
 def load_image_paths(csv_file, limit=None):
@@ -174,6 +174,11 @@ def main():
         torch_dtype=dtype
     )
     vl_gpt = vl_gpt.cuda().eval()
+
+    # Ensure the output directory exists
+    output_dir = os.path.dirname(OUTPUT_CSV)
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
 
     # Load image paths with an optional limit
     image_paths = load_image_paths(CSV_FILE, limit=None)

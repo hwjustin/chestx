@@ -1,4 +1,4 @@
-name: chestx
+name: chestx-test
 channels:
   - conda-forge
   - anaconda
@@ -7,3 +7,8 @@ dependencies:
   - python=3.10
   - pip:
     - invoke
+    - tqdm
+    - torch==2.6.0
+    - transformers==4.38.2
+    - numpy==1.26.4
+    - -e ./DeepSeek-VL2

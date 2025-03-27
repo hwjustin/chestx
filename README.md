@@ -5,6 +5,12 @@
 This repository contains the code implementation of the Multimodal Mixture of Experts (MMoE) strategy for ChestX disease classification task. We apply the MMoE strategy to handle distinct multimodal interactions in the ChestX dataset.
 
 ## 1. Setup
+**Clone the Repository**
+
+```bash
+git clone --recurse-submodules git@github.com:hwjustin/chestx.git
+```
+
 **Environment Setup**
 
 ```bash

@@ -10,8 +10,8 @@ DEVICE = "cuda"
 BATCH_SIZE = 1  # Process one report at a time for simplicity
 
 # File paths
-CSV_FILE = "proc/train.csv"
-OUTPUT_CSV = "results_text.csv"
+CSV_FILE = "data/chestx/proc/train.csv"
+OUTPUT_CSV = "data/chestx/split/unimodal_text_train.csv"
 
 def load_reports(csv_file, limit=None):
     """Load reports from a CSV file, with an optional limit."""
@@ -124,6 +124,11 @@ def save_results_to_csv(results, output_csv):
 def main():
     # Load model using vllm
     model = LLM(model=MODEL_PATH)
+
+    # Ensure the output directory exists
+    output_dir = os.path.dirname(OUTPUT_CSV)
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
 
     # Load reports with an optional limit
     reports = load_reports(CSV_FILE, limit=None)
