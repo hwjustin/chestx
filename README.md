@@ -40,8 +40,14 @@ python categorisation/chestx_split.py
 ```
 
 
+## 3. Training Expert and Fusion Models
+```bash
+# Training Expert Models
+bash blip2_chestx_expert_train.sh
 
-## 3. Training Expert Models
+# Training Fusion Models
+bash blip2_chestx_fusion_train.sh
+```
 
 
 ## 4. Inference with Mixture of Expert Models
