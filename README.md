@@ -64,6 +64,7 @@ bash blip2_chestx_fusion_inference.sh
 **Evaluate Fusion Strategies**
 
 ```bash
+# If you want to evaluate expert model performance on corresponding test subset, please run categorisation on test set as well.
 python fusion.py
 ```
 

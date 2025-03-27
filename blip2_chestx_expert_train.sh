@@ -2,7 +2,7 @@ export SEED=3
 
 # Baseline model training
 python train/blip2_expert_train.py \
---train_csv data/chestx/split/chestx_split_results.csv \
+--train_csv data/chestx/split/train/chestx_split_results.csv \
 --report_csv data/chestx/proc/train.csv \
 --image_folder data/chestx/proc/images \
 --save_path models/blip2_chestx_baseline_model \
@@ -14,7 +14,7 @@ python train/blip2_expert_train.py \
 
 # # AS category model training
 python train/blip2_expert_train.py \
---train_csv data/chestx/split/AS_category_results.csv \
+--train_csv data/chestx/split/train/AS_category_results.csv \
 --report_csv data/chestx/proc/train.csv \
 --image_folder data/chestx/proc/images \
 --save_path models/blip2_chestx_AS_model \
@@ -26,7 +26,7 @@ python train/blip2_expert_train.py \
 
 # # R category model training
 python train/blip2_expert_train.py \
---train_csv data/chestx/split/R_category_results.csv \
+--train_csv data/chestx/split/train/R_category_results.csv \
 --report_csv data/chestx/proc/train.csv \
 --image_folder data/chestx/proc/images \
 --save_path models/blip2_chestx_R_model \
@@ -38,7 +38,7 @@ python train/blip2_expert_train.py \
 
 # T category model training
 python train/blip2_expert_train.py \
---train_csv data/chestx/split/T_category_results.csv \
+--train_csv data/chestx/split/train/T_category_results.csv \
 --report_csv data/chestx/proc/train.csv \
 --image_folder data/chestx/proc/images \
 --save_path models/blip2_chestx_T_model \
@@ -50,7 +50,7 @@ python train/blip2_expert_train.py \
 
 # I category model training
 python train/blip2_expert_train.py \
---train_csv data/chestx/split/I_category_results.csv \
+--train_csv data/chestx/split/train/I_category_results.csv \
 --report_csv data/chestx/proc/train.csv \
 --image_folder data/chestx/proc/images \
 --save_path models/blip2_chestx_I_model \
