@@ -56,7 +56,6 @@ def calculate_metrics(gths, preds, probabilities):
     gths = np.array(gths)
     preds = np.array(preds)
     probabilities = np.array(probabilities)
-    print(gths.shape)
 
     auc = roc_auc_score(gths, probabilities)
 
@@ -185,25 +184,25 @@ def cascaded_fusion(logits, threshold, *args):
 
 def main():
     AS_test_data_ids = []
-    with open('data/chestx/split/AS_category_results.csv', mode='r') as file:
+    with open('data/chestx/split/test/AS_category_results.csv', mode='r') as file:
         reader = csv.DictReader(file)
         for row in reader:
             AS_test_data_ids.append(row['id'])
 
     R_test_data_ids = []
-    with open('data/chestx/split/R_category_results.csv', mode='r') as file:
+    with open('data/chestx/split/test/R_category_results.csv', mode='r') as file:
         reader = csv.DictReader(file)
         for row in reader:
             R_test_data_ids.append(row['id'])
 
     T_test_data_ids = []
-    with open('data/chestx/split/T_category_results.csv', mode='r') as file:
+    with open('data/chestx/split/test/T_category_results.csv', mode='r') as file:
         reader = csv.DictReader(file)
         for row in reader:
             T_test_data_ids.append(row['id'])
 
     I_test_data_ids = []
-    with open('data/chestx/split/I_category_results.csv', mode='r') as file:
+    with open('data/chestx/split/test/I_category_results.csv', mode='r') as file:
         reader = csv.DictReader(file)
         for row in reader:
             I_test_data_ids.append(row['id'])
@@ -215,7 +214,7 @@ def main():
     weights = load_weights(weights_file) if os.path.exists(weights_file) else None
 
     rtis_results = load_and_transform_data(test_file, file_dir, ["R", "T", "I", "AS"], weights)
-    # rus_results = load_and_transform_data(test_file, file_dir, ["R", "U", "AS"], weights)
+    rus_results = load_and_transform_data(test_file, file_dir, ["R", "U", "AS"], weights)
     baseline_results = load_and_transform_data(test_file, file_dir, ["baseline"], {})
 
     print(
@@ -225,7 +224,7 @@ def main():
 
     if weights:
         print("RTIS Fusion:", get_predictions(rtis_results, weighted_sigmoid_rtis_fusion))
-        # print("RUS Fusion:", get_predictions(rus_results, weighted_sigmoid_rus_fusion))
+        print("RUS Fusion:", get_predictions(rus_results, weighted_sigmoid_rus_fusion))
 
     print("Simple Average Fusion:", get_predictions(rtis_results, simple_average))
     print("Max Fusion:", get_predictions(rtis_results, max_fusion))

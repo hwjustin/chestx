@@ -1,4 +1,4 @@
-name: chestx-test
+name: chestx
 channels:
   - conda-forge
   - anaconda
