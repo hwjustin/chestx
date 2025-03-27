@@ -13,9 +13,8 @@ from transformers import AutoProcessor, AutoTokenizer, Blip2ForConditionalGenera
 from sklearn.metrics import f1_score, precision_score, recall_score
 from tqdm import tqdm
 from PIL import Image
-from peft import LoraConfig, PeftModel, get_peft_model  # Import LoRA modules
+from peft import LoraConfig, PeftModel, get_peft_model  
 
-# Define the categories and their corresponding character tokens
 CATEGORIES = [
     "Atelectasis", "Cardiomegaly", "Consolidation", "Edema", 
     "Enlarged-Cardiomediastinum", "Fracture", "Lung-Lesion", 
@@ -26,7 +25,6 @@ CATEGORIES = [
 CHARACTER_MAPPING = {category: chr(97 + i) for i, category in enumerate(CATEGORIES)}  # Maps to 'a', 'b', 'c', ...
 
 def get_character_token_ids(tokenizer):
-    # Map each character to a token ID
     return {char: tokenizer.convert_tokens_to_ids(tokenizer.tokenize(char)[0]) for char in CHARACTER_MAPPING.values()}
 
 class ChestXDataset(Dataset):
@@ -38,14 +36,12 @@ class ChestXDataset(Dataset):
         self.max_length = max_length
 
     def load_data(self, csv_file, report_file):
-        # Load image IDs and categories from the train_csv
         data = {}
         with open(csv_file, mode='r') as file:
             reader = csv.DictReader(file)
             for row in reader:
                 image_id = row['id']
                 category = row['category']
-                # Map categories to R, T, I, S
                 if category == "R":
                     label = "R"
                 elif category == "U_text":
@@ -56,7 +52,6 @@ class ChestXDataset(Dataset):
                     label = "S"
                 data[image_id] = {'label': label}
 
-        # Load reports from proc/train.csv
         with open(report_file, mode='r') as file:
             reader = csv.DictReader(file)
             for row in reader:
@@ -89,8 +84,6 @@ class ChestXDataset(Dataset):
         text_encoding = self.tokenizer(
             prompt, max_length=self.max_length, padding="max_length", truncation=True, return_tensors="pt"
         )
-
-        # Convert label to index
         label_map = {"R": 0, "T": 1, "I": 2, "S": 3}
         label = torch.tensor(label_map[entry['label']], dtype=torch.long)
 
@@ -113,7 +106,6 @@ def set_seed(seed):
     torch.backends.cudnn.benchmark = False
 
 def get_category_token_ids(tokenizer):
-    # Map each category to a token ID
     category_token_ids = {}
     for category in CATEGORIES:
         tokens = tokenizer.tokenize(category)
@@ -195,7 +187,6 @@ def train(model, train_dataloader, val_dataloader, tokenizer, device, args):
 
             total_loss += loss.item()
 
-        # Evaluate at the end of each epoch
         metrics = evaluate(tokenizer, model, val_dataloader, device)
         print(f"Epoch {epoch + 1}")
         print(f"Validation Accuracy: {metrics['accuracy']:.4f}")
@@ -207,9 +198,9 @@ def train(model, train_dataloader, val_dataloader, tokenizer, device, args):
             best_f1 = metrics["f1"]
             print("Model achieves better F1 score!")
 
-        # Save the model at the end of each epoch
-        epoch_save_path = os.path.join(args.save_path, f"epoch_{epoch+1}")  # Ensure epoch starts from 1
-        os.makedirs(epoch_save_path, exist_ok=True)  # Create directory if it doesn't exist
+
+        epoch_save_path = os.path.join(args.save_path, f"epoch_{epoch+1}") 
+        os.makedirs(epoch_save_path, exist_ok=True)  
         model.save_pretrained(epoch_save_path)
         print(f"Model saved at {epoch_save_path}")
 
@@ -239,7 +230,6 @@ if __name__ == "__main__":
 
     model = Blip2ForConditionalGeneration.from_pretrained("Salesforce/blip2-opt-2.7b")
 
-    # Apply LoRA to the model
     config = LoraConfig(
         r=args.lora_r,
         lora_alpha=args.lora_alpha,
@@ -254,6 +244,6 @@ if __name__ == "__main__":
     train_dataset = ChestXDataset(args.train_csv, args.image_folder, args.report_csv, tokenizer, processor, args.max_length)
     train_dataloader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True)
 
-    val_dataloader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=False)  # For simplicity, using the same dataset for validation
+    val_dataloader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=False) 
 
     train(model, train_dataloader, val_dataloader, tokenizer, device, args)

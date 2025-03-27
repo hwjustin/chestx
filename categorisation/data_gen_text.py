@@ -4,12 +4,12 @@ import torch
 from vllm import LLM, SamplingParams
 from tqdm import tqdm
 
-# Model configuration
+
 MODEL_PATH = "deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B"
 DEVICE = "cuda"
-BATCH_SIZE = 1  # Process one report at a time for simplicity
+BATCH_SIZE = 1  
 
-# File paths
+
 CSV_FILE = "data/chestx/proc/train.csv"
 OUTPUT_CSV = "data/chestx/split/train/unimodal_text.csv"
 
@@ -37,7 +37,6 @@ def process_reports(reports, model, csv_file):
         "Pleural_Other", "Pneumonia", "Pneumothorax", "Support-Devices"
     ]
 
-    # Load ground truth from CSV
     ground_truths = {}
     with open(csv_file, mode='r') as file:
         reader = csv.DictReader(file)
@@ -45,11 +44,9 @@ def process_reports(reports, model, csv_file):
             image_id = row['id']
             ground_truths[image_id] = {category: int(row[category]) for category in categories}
 
-    sampling_params = SamplingParams(temperature=0.5, top_p=0.95, max_tokens=5000)  # Define sampling parameters
+    sampling_params = SamplingParams(temperature=0.5, top_p=0.95, max_tokens=5000)
 
     for image_id, report in tqdm(reports, desc="Processing Reports"):
-        # Prepare the prompt
-        # f"If you can find any tiny clue of an anomaly from the list, you could select it even if you are not sure. "
         prompt = (
             f"This is a medical report of a patient. "
             f"Please act as a radiologist to analyze the report and predict medical conditions of the patient. "
@@ -62,49 +59,44 @@ def process_reports(reports, model, csv_file):
             f"Your final answer should be only category names from the list, just the words, do not repeat category, do not add any other text, sentence, markdown, explanation. or analysis.\n"
         )
 
-        # Generate response
+  
         outputs = model.generate([prompt], sampling_params)
         
-        # Decode the response
+
         full_answer = outputs[0].outputs[0].text.strip()
-        # Extract the answer after </think>
+
         if '</think>' in full_answer:
             answer = full_answer.split('</think>')[-1].strip()
         else:
             answer = ''
-        # answer = outputs[0].outputs[0].text.strip()
+     
 
-        # Store the answer and image_id for later processing
+     
         results.append({"id": image_id, "answer": answer})
 
-    # Parse responses and add ground truth outside the loop
+
     for result in results:
         answer = result["answer"]
         image_id = result["id"]
 
-        # Parse the model's response
         response_categories = {category: 0 for category in categories}
         for category in answer.split(','):
             category = category.strip()
             if category in response_categories:
                 response_categories[category] = 1
 
-        # Get ground truth
         ground_truth = ground_truths.get(image_id, {category: 0 for category in categories})
 
-        # Prepare result entry
         result_entry = {"id": image_id, "answer": answer}
         for category in categories:
             result_entry[f"{category}_pred"] = response_categories[category]
             result_entry[f"{category}_true"] = ground_truth[category]
 
-        # Update the result with parsed data
         result.update(result_entry)
 
     return results
 
 def save_results_to_csv(results, output_csv):
-    """Save the results to a CSV file."""
     categories = [
         "Atelectasis", "Cardiomegaly", "Consolidation", "Edema", 
         "Enlarged-Cardiomediastinum", "Fracture", "Lung-Lesion", 
@@ -122,21 +114,16 @@ def save_results_to_csv(results, output_csv):
             writer.writerow(result)
 
 def main():
-    # Load model using vllm
     model = LLM(model=MODEL_PATH)
 
-    # Ensure the output directory exists
     output_dir = os.path.dirname(OUTPUT_CSV)
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
 
-    # Load reports with an optional limit
     reports = load_reports(CSV_FILE, limit=None)
 
-    # Process reports and get results
     results = process_reports(reports, model, CSV_FILE)
 
-    # Save results to CSV
     save_results_to_csv(results, OUTPUT_CSV)
 
 if __name__ == "__main__":

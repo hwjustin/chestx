@@ -46,8 +46,6 @@ def select_subset_ids(text_preds, image_preds, ground_truths):
     return R_ids, U_text_ids, U_image_ids, AS_ids
 
 def save_results_to_csv(file_path, R_ids, U_text_ids, U_image_ids, AS_ids):
-    """Save the categorized results to a CSV file."""
-    # Save combined results
     with open(file_path, mode='w', newline='') as file:
         writer = csv.writer(file)
         writer.writerow(['id', 'category'])
@@ -60,7 +58,6 @@ def save_results_to_csv(file_path, R_ids, U_text_ids, U_image_ids, AS_ids):
         for image_id in AS_ids:
             writer.writerow([image_id, 'AS'])
 
-    # Save R category results
     with open(os.path.join(SAVE_DIR, 'R_category_results.csv'), mode='w', newline='') as file:
         writer = csv.writer(file)
         writer.writerow(['id', 'category'])
@@ -87,7 +84,6 @@ def save_results_to_csv(file_path, R_ids, U_text_ids, U_image_ids, AS_ids):
         for image_id in U_image_ids:
             writer.writerow([image_id, 'U_image'])
 
-    # Save AS category results
     with open(os.path.join(SAVE_DIR, 'AS_category_results.csv'), mode='w', newline='') as file:
         writer = csv.writer(file)
         writer.writerow(['id', 'category'])

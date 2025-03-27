@@ -9,7 +9,6 @@ from tqdm import tqdm
 from PIL import Image
 from sklearn.metrics import f1_score, precision_score, recall_score
 
-# Define the categories and their corresponding character tokens
 CATEGORIES = [
     "Atelectasis", "Cardiomegaly", "Consolidation", "Edema", 
     "Enlarged-Cardiomediastinum", "Fracture", "Lung-Lesion", 
@@ -20,7 +19,6 @@ CATEGORIES = [
 CHARACTER_MAPPING = {category: chr(97 + i) for i, category in enumerate(CATEGORIES)}  # Maps to 'a', 'b', 'c', ...
 
 def get_character_token_ids(tokenizer):
-    # Map each character to a token ID
     return {char: tokenizer.convert_tokens_to_ids(tokenizer.tokenize(char)[0]) for char in CHARACTER_MAPPING.values()}
 
 class ChestXDataset(Dataset):
@@ -32,14 +30,12 @@ class ChestXDataset(Dataset):
         self.max_length = max_length
 
     def load_data(self, csv_file, report_file):
-        # Load image IDs from the train_csv
         image_ids = []
         with open(csv_file, mode='r') as file:
             reader = csv.DictReader(file)
             for row in reader:
                 image_ids.append(row['id'])
 
-        # Load reports and ground truth from proc/train.csv
         data = {}
         with open(report_file, mode='r') as file:
             reader = csv.DictReader(file)
@@ -60,14 +56,11 @@ class ChestXDataset(Dataset):
         entry = self.data[image_id]
         image_path = os.path.join(self.image_folder, image_id)
         
-        # Load the original image
         image = Image.open(image_path)
 
-        # Process the image
         image = self.processor(image, return_tensors="pt").pixel_values.squeeze(0)
         
         report = entry['report']
-        # Update the prompt to use character mapping
         category_mapping_str = ", ".join([f"{char}: {category}" for category, char in CHARACTER_MAPPING.items()])
         prompt = (
             f"You are a doctor helping to predict the medical condition of a patient. "
@@ -79,7 +72,6 @@ class ChestXDataset(Dataset):
             prompt, max_length=self.max_length, padding="max_length", truncation=True, return_tensors="pt"
         )
 
-        # Convert ground truth to character labels
         label = torch.tensor([entry['ground_truth'][category] for category in CATEGORIES], dtype=torch.float)
 
         return {
@@ -117,14 +109,12 @@ def evaluate_and_save_predictions(tokenizer, model, dataloader, device, output_c
         for image_id, logit in zip(image_ids, character_logits):
             predictions_list.append({
                 "id": image_id,
-                "logits": logit.cpu().tolist()  # Convert logits to a list
+                "logits": logit.cpu().tolist()
             })
 
         all_labels.extend(labels.cpu().numpy())
         all_predictions.extend(predictions.cpu().numpy())
 
-    # Calculate metrics
-    # accuracy = sum([pred == label for pred, label in zip(all_predictions, all_labels)]) / len(all_labels)
     all_labels = torch.tensor(all_labels)
     all_predictions = torch.tensor(all_predictions)
     
@@ -132,17 +122,14 @@ def evaluate_and_save_predictions(tokenizer, model, dataloader, device, output_c
     precision = precision_score(all_labels, all_predictions, average='macro')
     recall = recall_score(all_labels, all_predictions, average='macro')
 
-    # print(f"Accuracy: {accuracy:.4f}")
     print(f"F1 Score: {f1:.4f}")
     print(f"Precision: {precision:.4f}")
     print(f"Recall: {recall:.4f}")
 
-    # Ensure the directory for the output CSV exists
     output_dir = os.path.dirname(output_csv)
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
 
-    # Save predictions to CSV
     with open(output_csv, mode='w', newline='') as file:
         fieldnames = ["id", "logits"]
         writer = csv.DictWriter(file, fieldnames=fieldnames)

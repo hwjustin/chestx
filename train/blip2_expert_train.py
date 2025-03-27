@@ -12,9 +12,8 @@ from transformers import AutoProcessor, AutoTokenizer, Blip2ForConditionalGenera
 from sklearn.metrics import f1_score, precision_score, recall_score
 from tqdm import tqdm
 from PIL import Image
-from peft import LoraConfig, PeftModel, get_peft_model  # Import LoRA modules
+from peft import LoraConfig, PeftModel, get_peft_model 
 
-# Define the categories and their corresponding character tokens
 CATEGORIES = [
     "Atelectasis", "Cardiomegaly", "Consolidation", "Edema", 
     "Enlarged-Cardiomediastinum", "Fracture", "Lung-Lesion", 
@@ -25,7 +24,6 @@ CATEGORIES = [
 CHARACTER_MAPPING = {category: chr(97 + i) for i, category in enumerate(CATEGORIES)}  # Maps to 'a', 'b', 'c', ...
 
 def get_character_token_ids(tokenizer):
-    # Map each character to a token ID
     return {char: tokenizer.convert_tokens_to_ids(tokenizer.tokenize(char)[0]) for char in CHARACTER_MAPPING.values()}
 
 class ChestXDataset(Dataset):
@@ -37,14 +35,12 @@ class ChestXDataset(Dataset):
         self.max_length = max_length
 
     def load_data(self, csv_file, report_file):
-        # Load image IDs from the train_csv
         image_ids = []
         with open(csv_file, mode='r') as file:
             reader = csv.DictReader(file)
             for row in reader:
                 image_ids.append(row['id'])
 
-        # Load reports and ground truth from proc/train.csv
         data = {}
         with open(report_file, mode='r') as file:
             reader = csv.DictReader(file)
@@ -65,14 +61,11 @@ class ChestXDataset(Dataset):
         entry = self.data[image_id]
         image_path = os.path.join(self.image_folder, image_id)
         
-        # Load the original image
         image = Image.open(image_path)
 
-        # Process the image
         image = self.processor(image, return_tensors="pt").pixel_values.squeeze(0)
         
         report = entry['report']
-        # Update the prompt to use character mapping
         category_mapping_str = ", ".join([f"{char}: {category}" for category, char in CHARACTER_MAPPING.items()])
         prompt = (
             f"You are a doctor helping to predict the medical condition of a patient. "
@@ -84,7 +77,6 @@ class ChestXDataset(Dataset):
             prompt, max_length=self.max_length, padding="max_length", truncation=True, return_tensors="pt"
         )
 
-        # Convert ground truth to character labels
         label = torch.tensor([entry['ground_truth'][category] for category in CATEGORIES], dtype=torch.float)
 
         return {
@@ -106,7 +98,6 @@ def set_seed(seed):
     torch.backends.cudnn.benchmark = False
 
 def get_category_token_ids(tokenizer):
-    # Map each category to a token ID
     category_token_ids = {}
     for category in CATEGORIES:
         tokens = tokenizer.tokenize(category)
@@ -142,7 +133,6 @@ def evaluate(tokenizer, model, dataloader, device):
     all_labels = torch.tensor(all_labels)
     all_predictions = torch.tensor(all_predictions)
 
-    # Compute multi-label classification metrics
     f1 = f1_score(all_labels, all_predictions, average="macro")
     precision = precision_score(all_labels, all_predictions, average="macro")
     recall = recall_score(all_labels, all_predictions, average="macro")
@@ -173,7 +163,6 @@ def train(model, train_dataloader, val_dataloader, tokenizer, device, args):
                 [logits[:, token_id] for token_id in character_token_ids.values()],
                 dim=-1,
             )
-            # labels = labels.argmax(dim=-1)  # Convert one-hot to class indices
             loss = criterion(character_logits, labels)
             loss.backward()
             optimizer.step()
@@ -190,9 +179,9 @@ def train(model, train_dataloader, val_dataloader, tokenizer, device, args):
             best_f1 = f1
             print("Model achieves better F1 score!")
 
-        # Save the model at the end of each epoch
-        epoch_save_path = os.path.join(args.save_path, f"epoch_{epoch+1}")  # Ensure epoch starts from 1
-        os.makedirs(epoch_save_path, exist_ok=True)  # Create directory if it doesn't exist
+   
+        epoch_save_path = os.path.join(args.save_path, f"epoch_{epoch+1}") 
+        os.makedirs(epoch_save_path, exist_ok=True) 
         model.save_pretrained(epoch_save_path)
         print(f"Model saved at {epoch_save_path}")
 
@@ -221,7 +210,6 @@ if __name__ == "__main__":
 
     model = Blip2ForConditionalGeneration.from_pretrained("Salesforce/blip2-opt-2.7b")
 
-    # Apply LoRA to the model
     config = LoraConfig(
         r=args.lora_r,
         lora_alpha=args.lora_alpha,
@@ -236,6 +224,6 @@ if __name__ == "__main__":
     train_dataset = ChestXDataset(args.train_csv, args.image_folder, args.report_csv, tokenizer, processor, args.max_length)
     train_dataloader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True)
 
-    val_dataloader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=False)  # For simplicity, using the same dataset for validation
+    val_dataloader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=False)
 
     train(model, train_dataloader, val_dataloader, tokenizer, device, args)

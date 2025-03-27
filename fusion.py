@@ -3,7 +3,6 @@ import os
 from collections import defaultdict
 
 import csv
-# import jsonlines
 import numpy as np
 from sklearn.metrics import (f1_score, precision_score,
                              recall_score, roc_auc_score)
@@ -30,7 +29,6 @@ def load_and_transform_data(test_file, file_dir, subset_names, weights=None):
         reader = csv.DictReader(f)
         for row in reader:
             data_id = row["id"]
-            # Directly use the values from the CSV row
             results[data_id]["target"] = [int(row[category]) for category in CATEGORIES]
 
 
@@ -52,7 +50,6 @@ def load_and_transform_data(test_file, file_dir, subset_names, weights=None):
 
 
 def calculate_metrics(gths, preds, probabilities):
-    # Convert gths and preds to NumPy arrays if they aren't already
     gths = np.array(gths)
     preds = np.array(preds)
     probabilities = np.array(probabilities)
@@ -71,21 +68,17 @@ def get_predictions(results, fusion_strategy, *args):
     gths, preds, probs = [], [], []
     for data in results.values():
         predictions, probabilities = fusion_strategy(data["logits"], data["weights"], threshold=0.1, *args)
-        gths.append(np.array(data["target"]))  # Convert to NumPy array
-        preds.append(np.array(predictions))    # Convert to NumPy array
+        gths.append(np.array(data["target"])) 
+        preds.append(np.array(predictions))    
         probs.append(np.array(probabilities))
-    # print(gths)
     return calculate_metrics(gths, preds, probs)
 
 
 def baseline_fusion(logits, weights, threshold=0.5, *args):
-    # Convert logits to a NumPy array if it's not already
     baseline_logits = np.array(logits["baseline"])
     
-    # Calculate probabilities using the sigmoid function
     probabilities = 1 / (1 + np.exp(-baseline_logits))
     
-    # Apply threshold to determine predictions
     predictions = (probabilities > threshold).astype(int)
     
     return predictions, probabilities
@@ -103,7 +96,7 @@ def weighted_sigmoid_rtis_fusion(logits, weights, threshold=0.5, *args):
     }
    
     weighted_logits = sum(
-        softmax_weights[name] * np.array(logit)  # Directly use raw logits
+        softmax_weights[name] * np.array(logit)  
         for name, logit in logits.items()
     )
     
@@ -112,7 +105,6 @@ def weighted_sigmoid_rtis_fusion(logits, weights, threshold=0.5, *args):
     return predictions, probabilities
 
 def weighted_sigmoid_rus_fusion(logits, weights, threshold=0.5, *args):
-    # Calculate softmax weights
     softmax_weights = {
         "R": np.exp(weights["R"])
         / (np.exp(weights["R"]) + np.exp(weights["T"]) + np.exp(weights["I"]) + np.exp(weights["AS"])),
@@ -122,14 +114,11 @@ def weighted_sigmoid_rus_fusion(logits, weights, threshold=0.5, *args):
         / (np.exp(weights["R"]) + np.exp(weights["T"]) + np.exp(weights["I"]) + np.exp(weights["AS"])),
     }
 
-    # Calculate softmax logits
     weighted_logits = sum(
-        softmax_weights[name] * np.array(logit)  # Directly use raw logits
+        softmax_weights[name] * np.array(logit)  
         for name, logit in logits.items()
     )
     
-    
-    # Apply threshold to determine multi-label predictions
     probabilities = 1 / (1 + np.exp(-weighted_logits))
     predictions = (probabilities > threshold).astype(int)
     return predictions, probabilities
