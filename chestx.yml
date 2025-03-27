@@ -12,3 +12,5 @@ dependencies:
     - transformers==4.48.2
     - numpy==1.26.4
     - vllm==0.8.2
+    - scikit-learn
+    - peft
