@@ -87,14 +87,14 @@ def evaluate_and_save_predictions(tokenizer, model, dataloader, device, output_c
 
         for image_id, prediction, logit in zip(image_ids, predictions, character_logits):
             predictions_list.append({
-                "image_id": image_id,
+                "id": image_id,
                 "prediction": prediction.item(),
                 "logits": logit.cpu().tolist()  # Convert logits to a list
             })
 
     # Save predictions to CSV
     with open(output_csv, mode='w', newline='') as file:
-        fieldnames = ["image_id", "prediction", "logits"]
+        fieldnames = ["id", "prediction", "logits"]
         writer = csv.DictWriter(file, fieldnames=fieldnames)
         writer.writeheader()
         writer.writerows(predictions_list)

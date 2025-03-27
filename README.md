@@ -64,7 +64,7 @@ bash blip2_chestx_fusion_inference.sh
 **Evaluate Fusion Strategies**
 
 ```bash
-python evaluation/evaluate_fusion.py
+python fusion.py
 ```
 
 ## Acknowledgements
