@@ -11,7 +11,7 @@ BATCH_SIZE = 1  # Process one report at a time for simplicity
 
 # File paths
 CSV_FILE = "data/chestx/proc/train.csv"
-OUTPUT_CSV = "data/chestx/split/train/unimodal_text_train.csv"
+OUTPUT_CSV = "data/chestx/split/train/unimodal_text.csv"
 
 def load_reports(csv_file, limit=None):
     """Load reports from a CSV file, with an optional limit."""

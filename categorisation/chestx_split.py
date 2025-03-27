@@ -87,9 +87,9 @@ def save_results_to_csv(file_path, R_ids, U_text_ids, U_image_ids, AS_ids):
             writer.writerow([image_id, 'AS'])
 
 def main():
-    text_preds = read_predictions(os.path.join(SAVE_DIR, 'unimodal_text_train.csv'))
-    image_preds = read_predictions(os.path.join(SAVE_DIR, 'unimodal_image_train.csv'))
-    ground_truths = read_ground_truth(os.path.join(SAVE_DIR, 'unimodal_image_train.csv'))  # Assuming ground truth is the same in both files
+    text_preds = read_predictions(os.path.join(SAVE_DIR, 'unimodal_text.csv'))
+    image_preds = read_predictions(os.path.join(SAVE_DIR, 'unimodal_image.csv'))
+    ground_truths = read_ground_truth(os.path.join(SAVE_DIR, 'unimodal_image.csv'))  # Assuming ground truth is the same in both files
 
     R_ids, U_text_ids, U_image_ids, AS_ids = select_subset_ids(text_preds, image_preds, ground_truths)
 

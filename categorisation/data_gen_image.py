@@ -33,7 +33,7 @@ BATCH_SIZE = 1  # Process one image at a time for simplicity
 
 # File paths
 CSV_FILE = "data/chestx/proc/train.csv"
-OUTPUT_CSV = "data/chestx/split/train/unimodal_image_train.csv"
+OUTPUT_CSV = "data/chestx/split/train/unimodal_image.csv"
 IMAGE_FOLDER = "data/chestx/proc/images/"
 
 def load_image_paths(csv_file, limit=None):
