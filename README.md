@@ -30,9 +30,12 @@ invoke download --dataset chestx
 python categorisation/data_gen_text.py
 
 # Unimodal Prediction from Image Modality
+# Install DeepSeek-VL2, the dependency requirement by DeepSeek-VL2 is conflict with the other code, need to install separately and remove it after the unimodal prediction.
+pip install -e ./DeepSeek-VL2
 python categorisation/data_gen_image.py
 
 # Categorising Training Samples
+conda env update --file chestx.yml
 python categorisation/chestx_split.py
 ```
 

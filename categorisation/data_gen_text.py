@@ -75,12 +75,12 @@ def process_reports(reports, model, csv_file):
         # answer = outputs[0].outputs[0].text.strip()
 
         # Store the answer and image_id for later processing
-        results.append({"image_id": image_id, "answer": answer})
+        results.append({"id": image_id, "answer": answer})
 
     # Parse responses and add ground truth outside the loop
     for result in results:
         answer = result["answer"]
-        image_id = result["image_id"]
+        image_id = result["id"]
 
         # Parse the model's response
         response_categories = {category: 0 for category in categories}
@@ -93,7 +93,7 @@ def process_reports(reports, model, csv_file):
         ground_truth = ground_truths.get(image_id, {category: 0 for category in categories})
 
         # Prepare result entry
-        result_entry = {"image_id": image_id, "answer": answer}
+        result_entry = {"id": image_id, "answer": answer}
         for category in categories:
             result_entry[f"{category}_pred"] = response_categories[category]
             result_entry[f"{category}_true"] = ground_truth[category]
@@ -111,7 +111,7 @@ def save_results_to_csv(results, output_csv):
         "Lung-Opacity", "No-Finding", "Pleural-Effusion", 
         "Pleural_Other", "Pneumonia", "Pneumothorax", "Support-Devices"
     ]
-    fieldnames = ["image_id", "answer"] + \
+    fieldnames = ["id", "answer"] + \
                  [f"{category}_pred" for category in categories] + \
                  [f"{category}_true" for category in categories]
 

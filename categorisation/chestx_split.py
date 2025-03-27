@@ -6,7 +6,7 @@ def read_predictions(file_path):
     with open(file_path, mode='r') as file:
         reader = csv.DictReader(file)
         for row in reader:
-            image_id = row['image_id']
+            image_id = row['id']
             predictions[image_id] = {key: int(value) for key, value in row.items() if '_pred' in key}
     return predictions
 
@@ -15,7 +15,7 @@ def read_ground_truth(file_path):
     with open(file_path, mode='r') as file:
         reader = csv.DictReader(file)
         for row in reader:
-            image_id = row['image_id']
+            image_id = row['id']
             ground_truths[image_id] = {key: int(value) for key, value in row.items() if '_true' in key}
     return ground_truths
 
@@ -47,7 +47,7 @@ def save_results_to_csv(file_path, R_ids, U_text_ids, U_image_ids, AS_ids):
     # Save combined results
     with open(file_path, mode='w', newline='') as file:
         writer = csv.writer(file)
-        writer.writerow(['image_id', 'category'])
+        writer.writerow(['id', 'category'])
         for image_id in R_ids:
             writer.writerow([image_id, 'R'])
         for image_id in U_text_ids:
@@ -58,32 +58,35 @@ def save_results_to_csv(file_path, R_ids, U_text_ids, U_image_ids, AS_ids):
             writer.writerow([image_id, 'AS'])
 
     # Save R category results
-    with open('R_category_results.csv', mode='w', newline='') as file:
+    with open('data/chestx/split/R_category_results.csv', mode='w', newline='') as file:
         writer = csv.writer(file)
-        writer.writerow(['image_id', 'category'])
+        writer.writerow(['id', 'category'])
         for image_id in R_ids:
             writer.writerow([image_id, 'R'])
 
-    # Save U category results (combining U_text and U_image)
-    with open('U_category_results.csv', mode='w', newline='') as file:
+    with open('data/chestx/split/T_category_results.csv', mode='w', newline='') as file:
         writer = csv.writer(file)
-        writer.writerow(['image_id', 'category'])
+        writer.writerow(['id', 'category'])
         for image_id in U_text_ids:
             writer.writerow([image_id, 'U_text'])
+    
+    with open('data/chestx/split/I_category_results.csv', mode='w', newline='') as file:
+        writer = csv.writer(file)
+        writer.writerow(['id', 'category'])
         for image_id in U_image_ids:
             writer.writerow([image_id, 'U_image'])
 
     # Save AS category results
-    with open('AS_category_results.csv', mode='w', newline='') as file:
+    with open('data/chestx/split/AS_category_results.csv', mode='w', newline='') as file:
         writer = csv.writer(file)
-        writer.writerow(['image_id', 'category'])
+        writer.writerow(['id', 'category'])
         for image_id in AS_ids:
             writer.writerow([image_id, 'AS'])
 
 def main():
-    text_preds = read_predictions('results_text.csv')
-    image_preds = read_predictions('results_image.csv')
-    ground_truths = read_ground_truth('results_image.csv')  # Assuming ground truth is the same in both files
+    text_preds = read_predictions('data/chestx/split/unimodal_text_train.csv')
+    image_preds = read_predictions('data/chestx/split/unimodal_image_train.csv')
+    ground_truths = read_ground_truth('data/chestx/split/unimodal_image_train.csv')  # Assuming ground truth is the same in both files
 
     R_ids, U_text_ids, U_image_ids, AS_ids = select_subset_ids(text_preds, image_preds, ground_truths)
 
@@ -92,7 +95,7 @@ def main():
     print("U_image_ids:", len(U_image_ids))
     print("AS_ids:", len(AS_ids))
 
-    save_results_to_csv('chestx_split_results.csv', R_ids, U_text_ids, U_image_ids, AS_ids)
+    save_results_to_csv('data/chestx/split/chestx_split_results.csv', R_ids, U_text_ids, U_image_ids, AS_ids)
 
 if __name__ == "__main__":
     main()
