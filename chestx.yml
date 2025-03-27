@@ -1,0 +1,9 @@
+name: chestx
+channels:
+  - conda-forge
+  - anaconda
+  - defaults
+dependencies:
+  - python=3.10
+  - pip:
+    - invoke
