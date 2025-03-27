@@ -12,14 +12,23 @@ conda env create -f chestx.yml
 conda activate chestx
 ```
 
-**Download ChestXDataset**
+**Download ChestX Dataset**
 
 ```bash
 invoke download --dataset chestx
 ```
 
-
 ## 2. Categorising Multimodal Interactions
+```bash
+# Unimodal Prediction from Text Modality
+python categorisation/data_gen_text.py
+
+# Unimodal Prediction from Image Modality
+python categorisation/data_gen_image.py
+
+# Categorising Training Samples
+python categorisation/chestx_split.py
+```
 
 
 
