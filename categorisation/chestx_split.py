@@ -66,6 +66,14 @@ def save_results_to_csv(file_path, R_ids, U_text_ids, U_image_ids, AS_ids):
         writer.writerow(['id', 'category'])
         for image_id in R_ids:
             writer.writerow([image_id, 'R'])
+    
+    with open(os.path.join(SAVE_DIR, 'U_category_results.csv'), mode='w', newline='') as file:
+        writer = csv.writer(file)
+        writer.writerow(['id', 'category'])
+        for image_id in U_text_ids:
+            writer.writerow([image_id, 'U_text'])
+        for image_id in U_image_ids:
+            writer.writerow([image_id, 'U_image'])
 
     with open(os.path.join(SAVE_DIR, 'T_category_results.csv'), mode='w', newline='') as file:
         writer = csv.writer(file)

@@ -59,3 +59,17 @@ python train/blip2_expert_train.py \
 --lr 1e-4 \
 --seed ${SEED} \
 --max_length 512
+
+
+# U category model training
+python train/blip2_expert_train.py \
+--train_csv data/chestx/split/train/U_category_results.csv \
+--report_csv data/chestx/proc/train.csv \
+--image_folder data/chestx/proc/images \
+--save_path models/blip2_chestx_U_model \
+--batch_size 4 \
+--epochs 10 \
+--lr 1e-4 \
+--seed ${SEED} \
+--max_length 512
+
