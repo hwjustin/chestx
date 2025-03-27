@@ -69,3 +69,5 @@ python fusion.py
 ```
 
 ## Acknowledgements
+Our code is based on MMoE: https://github.com/lwaekfjlk/mmoe \
+We thanks the authors for their open-source implementation.
